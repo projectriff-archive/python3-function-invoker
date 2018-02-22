@@ -1,1 +1,30 @@
 = Python3 Function Invoker image:https://ci.projectriff.io/api/v1/teams/main/pipelines/riff/jobs/build-python3-function-invoker-container/badge[Python3 Invoker Status, link=https://ci.projectriff.io/teams/main/pipelines/riff/jobs/build-python3-function-invoker-containe/builds/latest]
+
+== Running Tests
+
+Use a virtual environment for python 3.6
+
+```
+$pip install grpcio
+$pip install grpcio-tools
+$./setup.py test
+```
+
+== Update grpc modules
+
+```
+$./setup.py grpc
+```
+
+== Build the docker image
+```
+$./build.sh
+```
+
+== Running test functions in riff
+```
+$./build.sh
+$ riff create python tests/functions -n upper -p grpc --handler handle --riff-version 0.0.5-snapshot
+$ riff publish -i upper -r -d "hello, world"
+```
+

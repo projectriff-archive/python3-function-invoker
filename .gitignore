@@ -1,0 +1,9 @@
+grpc_modules/
+proto/
+.idea/
+.cache/
+.eggs/
+UNKNOWN.egg-info/
+*.pyc
+tests/functions/*.yaml
+tests/functions/Dockerfile
