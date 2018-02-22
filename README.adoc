@@ -1,1 +1,1 @@
-= Python4 Function Invoker image:https://ci.projectriff.io/api/v1/teams/main/pipelines/riff/jobs/build-python3-function-invoker-container/badge[Python2 Invoker Status, link=https://ci.projectriff.io/teams/main/pipelines/riff/jobs/build-python3-function-invoker-containe/builds/latest]
+= Python3 Function Invoker image:https://ci.projectriff.io/api/v1/teams/main/pipelines/riff/jobs/build-python3-function-invoker-container/badge[Python3 Invoker Status, link=https://ci.projectriff.io/teams/main/pipelines/riff/jobs/build-python3-function-invoker-containe/builds/latest]
