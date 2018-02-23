@@ -97,6 +97,48 @@ class GrpcFunctionTest(unittest.TestCase):
 
         self.assertEqual(0, len(expected))
 
+    def test_upper_no_correlation(self):
+        port = find_free_port()
+        env = {
+            'PYTHONPATH': '%s/tests/functions:$PYTHONPATH' % os.getcwd(),
+            'GRPC_PORT': str(port),
+            'FUNCTION_URI': 'file://%s/tests/functions/upper.py?handler=handle' % os.getcwd()
+        }
+
+        self.process = subprocess.Popen(self.command,
+                                        cwd=self.workingdir,
+                                        shell=True,
+                                        env=env,
+                                        preexec_fn=os.setsid,
+                                        )
+
+        channel = grpc.insecure_channel('localhost:%s' % port)
+        wait_until_channel_ready(channel)
+
+        self.stub = function.MessageFunctionStub(channel)
+
+        def generate_messages():
+            headers = {}
+
+            messages = [
+                message.Message(payload=b"hello", headers=headers),
+                message.Message(payload=b"world", headers=headers),
+                message.Message(payload=b"foo", headers=headers),
+                message.Message(payload=b"bar", headers=headers),
+            ]
+            for msg in messages:
+                yield msg
+
+        responses = self.stub.Call(generate_messages())
+        expected = [b'HELLO', b'WORLD', b'FOO', b'BAR']
+
+        for response in responses:
+            self.assertTrue(response.payload in expected)
+            self.assertEqual([], response.headers['correlationId'].values)
+            expected.remove(response.payload)
+
+        self.assertEquals(0, len(expected))
+
     def test_concat(self):
         port = find_free_port()
         env = {
