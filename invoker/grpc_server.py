@@ -19,9 +19,6 @@ __author__ = 'David Turanski'
 
 import os, sys
 
-#sys.path.insert(0, os.path.abspath('.'))
-
-print(sys.path)
 import grpc
 import time
 import function_pb2_grpc as function

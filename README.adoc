@@ -8,12 +8,11 @@ For messages containing `Content-Type:application/json`, the bytes payload is co
 
 == Running Tests
 
-Use a virtual environment for python 3.6
+This script will install a virtual environment for python 3.6 and run the tests.
 
 ```
-$pip install grpcio
-$pip install grpcio-tools
-$./setup.py test
+$./run_tests.sh 3.6 p3
+
 ```
 
 == Update grpc modules

@@ -15,6 +15,10 @@ Copyright 2018 the original author or authors.
 '''
 __author__ = 'David Turanski'
 
+import sys
+if sys.version_info[0] != 3:
+    raise RuntimeError("Requires Python 3")
+
 import grpc
 import unittest
 import subprocess
@@ -23,15 +27,13 @@ import uuid
 import time
 import signal
 import warnings
-import sys
+
 sys.path.append('invoker')
 
 import function_pb2_grpc as function
 import function_pb2 as message
 
-# TODO: Make this portable
-PYTHON3 = "~/miniconda3/bin/python"
-
+PYTHON = sys.executable
 
 class GrpcFunctionTest(unittest.TestCase):
     """
@@ -41,7 +43,7 @@ class GrpcFunctionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.workingdir = os.path.abspath("./invoker")
-        cls.command = "%s function_invoker.py" % PYTHON3
+        cls.command = "%s function_invoker.py" % PYTHON
         cls.PYTHONPATH = '%s:%s' % ('%s/tests/functions:$PYTHONPATH' % os.getcwd(), '%s/invoker' % os.getcwd())
 
     def setUp(self):
@@ -65,9 +67,10 @@ class GrpcFunctionTest(unittest.TestCase):
                                         env=env,
                                         preexec_fn=os.setsid,
                                         )
-        time.sleep(0.5)
 
         channel = grpc.insecure_channel('localhost:%s' % port)
+        wait_until_channel_ready(channel)
+
         self.stub = function.MessageFunctionStub(channel)
 
         def generate_messages():
@@ -108,9 +111,10 @@ class GrpcFunctionTest(unittest.TestCase):
                                         env=env,
                                         preexec_fn=os.setsid,
                                         )
-        time.sleep(0.5)
 
         channel = grpc.insecure_channel('localhost:%s' % port)
+        wait_until_channel_ready(channel)
+
         self.stub = function.MessageFunctionStub(channel)
 
         def generate_messages():
@@ -144,9 +148,10 @@ class GrpcFunctionTest(unittest.TestCase):
                                         env=env,
                                         preexec_fn=os.setsid,
                                         )
-        time.sleep(0.5)
 
         channel = grpc.insecure_channel('localhost:%d' % port)
+        wait_until_channel_ready(channel)
+
         self.stub = function.MessageFunctionStub(channel)
 
         def generate_messages():
@@ -181,9 +186,10 @@ class GrpcFunctionTest(unittest.TestCase):
                                         env=env,
                                         preexec_fn=os.setsid,
                                         )
-        time.sleep(0.5)
 
         channel = grpc.insecure_channel('localhost:%d' % port)
+        wait_until_channel_ready(channel)
+
         self.stub = function.MessageFunctionStub(channel)
 
         def generate_messages():
@@ -218,9 +224,10 @@ class GrpcFunctionTest(unittest.TestCase):
                                         env=env,
                                         preexec_fn=os.setsid,
                                         )
-        time.sleep(0.5)
 
         channel = grpc.insecure_channel('localhost:%s' % port)
+        wait_until_channel_ready(channel)
+
         self.stub = function.MessageFunctionStub(channel)
 
         def generate_messages():
@@ -240,6 +247,7 @@ class GrpcFunctionTest(unittest.TestCase):
             responses = self.stub.Call(generate_messages())
             self.assertEqual(grpc._channel._Rendezvous, type(responses))
             # TODO: Investigate error handling
+            # https://github.com/projectriff/python2-function-invoker/issues/5
         except RuntimeError:
             pass
 
@@ -252,3 +260,14 @@ def find_free_port():
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(('', 0))
         return s.getsockname()[1]
+
+
+def wait_until_channel_ready(channel):
+    max_tries = 100
+    ready = grpc.channel_ready_future(channel)
+    tries = 0
+    while not ready.done():
+        time.sleep(0.1)
+        tries = tries + 1
+        if tries == max_tries:
+            raise RuntimeError("cannot connect to gRPC server")
