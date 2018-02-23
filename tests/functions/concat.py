@@ -27,3 +27,4 @@ def concat(vals):
     for k, v in od.items():
         result = result + k + v
     return {'result': result}
+
