@@ -74,4 +74,4 @@ class MessageFunctionServicer(function.MessageFunctionServicer):
             else:
                 raise RuntimeError('Cannot convert type %s to JSON' % type(val))
         else:
-            raise RuntimeError('Unsupported response type %s' % accepts)
+            raise RuntimeError('Unsupported Accept header %s' % accepts)
