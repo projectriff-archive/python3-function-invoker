@@ -1,1 +1,37 @@
 = Python3 Function Invoker image:https://ci.projectriff.io/api/v1/teams/main/pipelines/riff/jobs/build-python3-function-invoker-container/badge[Python3 Invoker Status, link=https://ci.projectriff.io/teams/main/pipelines/riff/jobs/build-python3-function-invoker-containe/builds/latest]
+
+== About
+
+The Python 3 function invoker, as the name implies, supports functions written in Python 3.  The invoker supports function arguments of type `str` or `dict`, determined by the message's `Content-Type` header.
+For messages containing `Content-Type:application/json`, the bytes payload is converted to a dict. Reflection is used to convert the return value. Currently only UTF-8 encoding is supported.
+
+Supported Python Version: 3.6.x
+
+
+== Running Tests
+
+This script will install a virtual environment for python 3.6 and run the tests.
+
+```
+$./run_tests.sh
+
+```
+
+== Update grpc modules
+
+```
+$./setup.py grpc
+```
+
+== Build the docker image
+```
+$./build.sh
+```
+
+== Running test functions in riff
+```
+$./build.sh
+$ riff create python tests/functions -n upper -p grpc --handler handle --riff-version 0.0.5-snapshot
+$ riff publish -i upper -r -d "hello, world"
+```
+
