@@ -1,0 +1,20 @@
+language: python
+python:
+- '3.6'
+install: true
+matrix:
+  include:
+  - stage: test
+    script: "./run_tests.sh"
+  - stage: publish
+    sudo: required
+    services:
+    - docker
+    script: "./.travis.docker-push.sh"
+stages:
+- test
+- name: publish
+  if: branch = master AND type = push
+notifications:
+  slack:
+    secure: Fh47H6n2meehpBf6R/FDapottatm6dgZvEF646Y3Ejz9enNRX55ov9rXHfXbW8aCkQeP/M0tfti6FtkDXCAuQU7Oi/6c/C8iv3ujBqmaLwCyDy0qxmW1+Id3OcGKiZmapAEobTlwj3CB9BU/Pe151iYxRAcdon67YueSJ08HQVzd1N6PrYNw9FTVpPPMs2/3hh62+y2/ZVIGAngQVKIyHE/NyxU2Wri/K2u2MmR1WiHNBBGO0z0gPq7rhNj8bTAuXMSmRFK5nf28i9oGnKpN2voh2NkemcLn2nrgvAkvkVblZt5vzmxx0kTbjVGp/spd8VE8gvjWmJkwbRTfShReCccokJnCSAfJeyeiSvIWFClQy7TBg3zbpBf9mny/I05Oq07cAsobEtW+Dk2iPDOWuiTFBC58GT2Arh2gKF5Bje8VOiXmNEHUXwW2JIJY7URGzaIhy2y42rYzAuSnyf3yEw0Q2HJt3yJFIduaOBgKf9YAgdHpNQIUsZQ1MUaItz4nsiy7P30pXiP/qpOdu1nOn06HvTlg2MY74FS9/0SehaUcdc+uuD1P3hyotA+usYbdGYLOtqtrc2lnOmzlOt9zFzKLx6xI0Wi0vmnPl0iCfPbAmSRgBcuseKl23yg4YkOsFiKrYeRzWvelFhKPLADH3mZD5Ccf4SzsBmpVIxuLxtw=
