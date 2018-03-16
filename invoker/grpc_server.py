@@ -47,6 +47,7 @@ class MessageFunctionServicer(function.MessageFunctionServicer):
             result = self.func(self.convert_request_payload(request))
 
             reply = message.Message()
+
             reply.payload = self.convert_reply_payload(request.headers['Accept'].values, result)
 
             reply.headers['correlationId'].values[:] = request.headers['correlationId'].values[:]
@@ -57,7 +58,7 @@ class MessageFunctionServicer(function.MessageFunctionServicer):
         if 'application/json' in request.headers['Content-Type'].values:
             return json.loads(request.payload)
         else:
-            return request.payload
+            return request.payload.decode('UTF-8')
 
     @classmethod
     def convert_reply_payload(cls, accepts, val):
@@ -66,7 +67,7 @@ class MessageFunctionServicer(function.MessageFunctionServicer):
             if type(val) is dict:
                 return bytes(json.dumps(val),'UTF-8')
             else:
-                return val
+                return bytes(val,'UTF-8')
 
         if 'application/json' in accepts:
             if type(val) is dict:
