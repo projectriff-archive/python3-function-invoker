@@ -31,7 +31,7 @@ $./build.sh
 == Running test functions in riff
 ```
 $./build.sh
-$ riff create python tests/functions -n upper -p grpc --handler handle --riff-version 0.0.5-snapshot
+$ riff create python tests/functions -n upper --handler handle
 $ riff publish -i upper -r -d "hello, world"
 ```
 
