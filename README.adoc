@@ -28,6 +28,11 @@ $./setup.py grpc
 $./build.sh
 ```
 
+== Install the Invoker in a riff environment
+```
+kubectl apply -f python3-invoker.yaml
+```
+
 == Running test functions in riff
 ```
 $./build.sh
