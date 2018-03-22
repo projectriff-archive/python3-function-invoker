@@ -7,6 +7,12 @@ For messages containing `Content-Type:application/json`, the bytes payload is co
 
 Supported Python Version: 3.6.x
 
+== Install as a riff invoker
+
+[source, bash]
+----
+kubectl apply -f python3-invoker.yaml
+----
 
 == Running Tests
 
