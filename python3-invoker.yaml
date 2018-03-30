@@ -7,11 +7,11 @@ spec:
   version: 0.0.6-snapshot
   matchers:
   - "*.py"
-  properties:
-    handler:
-      default: "{{ .FunctionName }}"
-      description: the name of the function handler
-    function:
+  handler:
+    default: "{{ .FunctionName }}"
+    description: the name of the function handler
+  functionTemplate:
+    spec:
       protocol: grpc
   files:
   - path: Dockerfile
