@@ -1,0 +1,34 @@
+= concat
+
+[horizontal]
+*Invoker*:: python3
+*Function*:: link:concat.py[concat.py]
+*Input*:: concat
+
+=== prerequisites
+
+1. riff is deployed
+2. the `riff` CLI is on your PATH
+3. the python3 invoker is installed
+
+    riff invokers apply -f https://github.com/projectriff/python3-function-invoker/raw/master/python3-invoker.yaml
+
+4. the working directory is `samples/concat`
+
+=== create the function
+
+```
+riff create python3
+```
+
+=== publish a message and wait for a reply
+
+```
+riff publish -i concat --content-type=application/json -d'{"He":"llo","Wor":"ld"}' -r
+```
+
+=== delete the function and its input topic
+
+```
+riff delete --all
+```
