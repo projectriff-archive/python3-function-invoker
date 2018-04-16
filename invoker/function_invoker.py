@@ -28,13 +28,25 @@ from shutil import copyfile
 import grpc_server
 
 
-def invoke_function(func):
-    grpc_server.run(func, os.environ.get("GRPC_PORT", "10382"))
+def invoke_function(func,interaction_model, env):
+    """
+    Start a gRPC Server to invoke the function
+    :param func: the function
+    :param interaction_model: indicates interaction model: None is single value parameter and return type, 'stream' indicates input and output are generators
+    :param env: a dict containing the runtime environment, usually os.environ
+    :return: None
+    """
+    grpc_server.run(func, interaction_model, env.get("GRPC_PORT", 10382))
 
 
-def install_function():
+def install_function(env):
+    """
+    Locate and install the function resources given by the FUNCTION_URI
+    :param env:  a dict containing the runtime environment, usually os.environ
+    :return: function plus the given interaction_model (from a global variable in the handler module)
+    """
     try:
-        function_uri = os.environ['FUNCTION_URI']
+        function_uri = env['FUNCTION_URI']
         url = urlparse(function_uri)
         if url.scheme == 'file':
             if not os.path.isfile(url.path):
@@ -69,13 +81,22 @@ def install_function():
             mod_name, func_name = handler.rsplit('.', 1)
 
         mod = importlib.import_module(mod_name)
-        return getattr(mod, func_name)
+        return getattr(mod, func_name), getattr(mod, 'interaction_model',None)
 
     except KeyError:
         sys.stderr.write("required environment variable FUNCTION_URI is missing\n")
         exit(1)
 
 
+def stop(grace=None):
+    """
+    Stop the server. Currently used for testing.
+    :param grace: A grace period in seconds to wait for termination
+    :return: None
+    """
+    grpc_server.stop(grace)
+
+
 if __name__ == '__main__':
-    function = install_function()
-    invoke_function(function)
+    func, interaction_model = install_function(os.environ)
+    invoke_function(func,interaction_model,os.environ)

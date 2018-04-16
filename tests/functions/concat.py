@@ -17,7 +17,8 @@ __author__ = 'David Turanski'
 
 import collections
 
-def concat(vals):
+
+def concat(vals: dict) -> dict:
     '''
     :param vals: expects a dict
     :return: a singleton dict whose value is concatenated keys and values
@@ -27,4 +28,3 @@ def concat(vals):
     for k, v in od.items():
         result = result + k + v
     return {'result': result}
-

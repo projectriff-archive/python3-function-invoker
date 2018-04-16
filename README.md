@@ -7,6 +7,19 @@ For messages containing `Content-Type:application/json`, the bytes payload is co
 
 Supported Python Version: 3.6.x
 
+## Streams (experimental)
+If the function module contains a global variable `interaction_model='stream'`, the invoker will pass a generator yielding each message payload. The response should be a generator yielding the response payload.
+
+For example:
+
+```
+interaction_model = "stream"
+
+
+def bidirectional(stream):
+    return (item.upper() for item in stream)
+```
+
 ## Install as a riff invoker
 
 ```bash

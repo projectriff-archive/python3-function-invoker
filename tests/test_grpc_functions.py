@@ -15,7 +15,9 @@ Copyright 2018 the original author or authors.
 '''
 __author__ = 'David Turanski'
 
+from tests.utils import testutils
 import sys
+
 if sys.version_info[0] != 3:
     raise RuntimeError("Requires Python 3")
 
@@ -24,19 +26,20 @@ import unittest
 import subprocess
 import os
 import uuid
-import time
 import signal
 import warnings
 
 sys.path.append('invoker')
 
-import function_pb2_grpc as function
-import function_pb2 as message
+import invoker.function_pb2_grpc as function
+import invoker.function_pb2 as message
 
 PYTHON = sys.executable
 
+
 class GrpcFunctionTest(unittest.TestCase):
     """
+    Spawns function_invoker in a separate process.
     Assumes os.getcwd() is the project base directory
     """
 
@@ -54,7 +57,7 @@ class GrpcFunctionTest(unittest.TestCase):
         os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
 
     def test_upper(self):
-        port = find_free_port()
+        port = testutils.find_free_port()
         env = {
             'PYTHONPATH': self.PYTHONPATH,
             'GRPC_PORT': str(port),
@@ -69,7 +72,7 @@ class GrpcFunctionTest(unittest.TestCase):
                                         )
 
         channel = grpc.insecure_channel('localhost:%s' % port)
-        wait_until_channel_ready(channel)
+        testutils.wait_until_channel_ready(channel)
 
         self.stub = function.MessageFunctionStub(channel)
 
@@ -98,7 +101,7 @@ class GrpcFunctionTest(unittest.TestCase):
         self.assertEqual(0, len(expected))
 
     def test_upper_no_correlation(self):
-        port = find_free_port()
+        port = testutils.find_free_port()
         env = {
             'PYTHONPATH': '%s/tests/functions:$PYTHONPATH' % os.getcwd(),
             'GRPC_PORT': str(port),
@@ -113,7 +116,7 @@ class GrpcFunctionTest(unittest.TestCase):
                                         )
 
         channel = grpc.insecure_channel('localhost:%s' % port)
-        wait_until_channel_ready(channel)
+        testutils.wait_until_channel_ready(channel)
 
         self.stub = function.MessageFunctionStub(channel)
 
@@ -137,10 +140,10 @@ class GrpcFunctionTest(unittest.TestCase):
             self.assertEqual([], response.headers['correlationId'].values)
             expected.remove(response.payload)
 
-        self.assertEquals(0, len(expected))
+        self.assertEqual(0, len(expected))
 
     def test_concat(self):
-        port = find_free_port()
+        port = testutils.find_free_port()
         env = {
             'PYTHONPATH': self.PYTHONPATH,
             'GRPC_PORT': str(port),
@@ -155,7 +158,7 @@ class GrpcFunctionTest(unittest.TestCase):
                                         )
 
         channel = grpc.insecure_channel('localhost:%s' % port)
-        wait_until_channel_ready(channel)
+        testutils.wait_until_channel_ready(channel)
 
         self.stub = function.MessageFunctionStub(channel)
 
@@ -176,8 +179,54 @@ class GrpcFunctionTest(unittest.TestCase):
         for response in responses:
             self.assertEqual(b'{"result": "foobarhelloworld"}', response.payload)
 
+    def test_bidirectional_stream(self):
+        port = testutils.find_free_port()
+        env = {
+            'PYTHONPATH': self.PYTHONPATH,
+            'GRPC_PORT': str(port),
+            'FUNCTION_URI': 'file://%s/tests/functions/streamer.py?handler=bidirectional' % os.getcwd()
+        }
+
+        self.process = subprocess.Popen(self.command,
+                                        cwd=self.workingdir,
+                                        shell=True,
+                                        env=env,
+                                        preexec_fn=os.setsid,
+                                        )
+
+        channel = grpc.insecure_channel('localhost:%s' % port)
+        testutils.wait_until_channel_ready(channel)
+
+        self.stub = function.MessageFunctionStub(channel)
+
+        def generate_messages():
+            headers = {
+                'Content-Type': message.Message.HeaderValue(values=['text/plain']),
+                'correlationId': message.Message.HeaderValue(values=[str(uuid.uuid4())])
+            }
+
+            messages = [
+                message.Message(payload=b'foo', headers=headers),
+                message.Message(payload=b'bar', headers=headers),
+                message.Message(payload=b'baz', headers=headers),
+                message.Message(payload=b'faz', headers=headers),
+            ]
+            for msg in messages:
+                yield msg
+
+        responses = self.stub.Call(generate_messages())
+
+        expected = [b'FOO', b'BAR', b'BAZ', b'FAZ']
+
+        for response in responses:
+            self.assertTrue(response.payload in expected)
+            expected.remove(response.payload)
+
+        self.assertEqual(0, len(expected))
+
+
     def test_accepts_application_json(self):
-        port = find_free_port()
+        port = testutils.find_free_port()
         env = {
             'PYTHONPATH': self.PYTHONPATH,
             'GRPC_PORT': str(port),
@@ -192,7 +241,7 @@ class GrpcFunctionTest(unittest.TestCase):
                                         )
 
         channel = grpc.insecure_channel('localhost:%d' % port)
-        wait_until_channel_ready(channel)
+        testutils.wait_until_channel_ready(channel)
 
         self.stub = function.MessageFunctionStub(channel)
 
@@ -215,7 +264,7 @@ class GrpcFunctionTest(unittest.TestCase):
             self.assertEqual(b'{"result": "foobarhelloworld"}', response.payload)
 
     def test_accepts_text_plain(self):
-        port = find_free_port()
+        port = testutils.find_free_port()
         env = {
             'PYTHONPATH': self.PYTHONPATH,
             'GRPC_PORT': str(port),
@@ -230,7 +279,7 @@ class GrpcFunctionTest(unittest.TestCase):
                                         )
 
         channel = grpc.insecure_channel('localhost:%d' % port)
-        wait_until_channel_ready(channel)
+        testutils.wait_until_channel_ready(channel)
 
         self.stub = function.MessageFunctionStub(channel)
 
@@ -253,7 +302,7 @@ class GrpcFunctionTest(unittest.TestCase):
             self.assertEqual(b'{"result": "foobarhelloworld"}', response.payload)
 
     def test_accepts_not_supported(self):
-        port = find_free_port()
+        port = testutils.find_free_port()
         env = {
             'PYTHONPATH': self.PYTHONPATH,
             'GRPC_PORT': str(port),
@@ -268,7 +317,7 @@ class GrpcFunctionTest(unittest.TestCase):
                                         )
 
         channel = grpc.insecure_channel('localhost:%s' % port)
-        wait_until_channel_ready(channel)
+        testutils.wait_until_channel_ready(channel)
 
         self.stub = function.MessageFunctionStub(channel)
 
@@ -292,24 +341,3 @@ class GrpcFunctionTest(unittest.TestCase):
             # https://github.com/projectriff/python2-function-invoker/issues/5
         except RuntimeError:
             pass
-
-
-import socket
-from contextlib import closing
-
-
-def find_free_port():
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('', 0))
-        return s.getsockname()[1]
-
-
-def wait_until_channel_ready(channel):
-    max_tries = 100
-    ready = grpc.channel_ready_future(channel)
-    tries = 0
-    while not ready.done():
-        time.sleep(0.1)
-        tries = tries + 1
-        if tries == max_tries:
-            raise RuntimeError("cannot connect to gRPC server")
