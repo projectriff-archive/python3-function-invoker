@@ -9,7 +9,7 @@
 
 1. riff is deployed
 2. the `riff` CLI is on your PATH
-3. the python2 invoker is installed
+3. the python3 invoker is installed
 
     riff invokers apply -f https://github.com/projectriff/python3-function-invoker/raw/master/python3-invoker.yaml
 

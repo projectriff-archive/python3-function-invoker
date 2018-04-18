@@ -188,6 +188,38 @@ class FunctionInvokerTest(unittest.TestCase):
 
         invoker.function_invoker.stop()
 
+    def test_discrete_window_text(self):
+
+        from itertools import count
+        import struct
+        import json
+
+        env = function_env('windows.py','discrete_window_text')
+
+        func, interaction_model = invoker.function_invoker.install_function(env)
+
+        threading.Thread(target=invoker.function_invoker.invoke_function,
+                                            args=([func, interaction_model, env])).start();
+
+        channel = grpc.insecure_channel('localhost:%s' % env['GRPC_PORT'])
+        testutils.wait_until_channel_ready(channel)
+
+        '''
+        unbounded generator of Messages converting int to bytes
+        '''
+        messages = (message.Message(payload=bytes("X%d" % i,'UTF-8') , headers = {'Content-Type': message.Message.HeaderValue(values=['text/plain'])}) for i in count())
+
+        responses = function.MessageFunctionStub(channel).Call(messages)
+
+        '''
+        Check the first 10 responses. Each message is a json serialized tuple of size 3 containing the next sequence of ints.
+        '''
+        for i in range(10):
+            tpl = json.loads(next(responses).payload)
+            print(tpl)
+
+        invoker.function_invoker.stop()
+
     def test_sliding_window(self):
         from itertools import count
         import struct

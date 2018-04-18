@@ -9,17 +9,11 @@ def discrete_window(stream):
     window_size=3
     """
     Adapted from https://mail.python.org/pipermail/python-ideas/2013-December/024492.html
-    First create a list of generators of len(window_size). Each payload is an integer represented as bytes which we unmarshall.
+    First create a list of generators of len(window_size)
     The zip function merges the next element from each generator in the list into tuples. The output is a stream of tuples 
     ((0,1,2),(3,4,5),(6,7,8),...) . Each tuple is serialized as json.    
     """
 
-    repeated_iterable = [(struct.unpack(">I",i)[0] for i in stream)] * window_size
-    return (json.dumps(tpl) for tpl in zip_longest(*repeated_iterable, fillvalue=None))
-
-
-def discrete_window_text(stream):
-    window_size=3
     repeated_iterable = [stream] * window_size
     return (json.dumps(tpl) for tpl in zip_longest(*repeated_iterable, fillvalue=None))
 
@@ -32,7 +26,7 @@ def sliding_window(stream):
     Each tuple is serialized as json
     """
 
-    iters = tee((struct.unpack(">I",i)[0] for i in stream), window_size)
+    iters = tee(stream, window_size)
     '''
     iters = (count(),count(),count())
     '''
