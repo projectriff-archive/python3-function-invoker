@@ -22,7 +22,7 @@
 ==== create the function 
 
 ```
-riff create python3 --name discrete --handler=discrete_window --input discrete --output discrete_out
+riff create python3 --name discrete --handler=discrete_window --output discrete_out
 ```
 
 ==== publish some messages and monitor the output topic
@@ -54,8 +54,7 @@ riff delete -n discrete --all
 ==== create the function 
 
 ```
-riff create python3 --name slide --handler=sliding_window 
---output slide_out
+riff create python3 --name slide --handler=sliding_window --output slide_out
 ```
 
 ==== publish some messages and monitor the output topic
