@@ -59,7 +59,7 @@ def install_function(env):
                 zip_ref = zipfile.ZipFile(url.path, 'r')
                 zip_ref.extractall('.')
                 zip_ref.close()
-                sys.stderr.write("Files extracted\n")
+                sys.stdout.write("Files extracted\n")
             elif extension == '.py':
                 if not os.path.isfile(url.path):
                     copyfile(url.path, ('./%s' % ntpath.basename(url.path)))

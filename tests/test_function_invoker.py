@@ -85,7 +85,7 @@ class FunctionInvokerTest(unittest.TestCase):
         self.assertEqual('stream',interaction_model)
 
         threading.Thread(target=invoker.function_invoker.invoke_function,
-                                            args=([func, interaction_model, env])).start();
+                                            args=([func, interaction_model, env])).start()
 
         channel = grpc.insecure_channel('localhost:%s' % env['GRPC_PORT'])
         testutils.wait_until_channel_ready(channel)
@@ -125,7 +125,7 @@ class FunctionInvokerTest(unittest.TestCase):
         self.assertEqual('stream',interaction_model)
 
         threading.Thread(target=invoker.function_invoker.invoke_function,
-                                            args=([func, interaction_model, env])).start();
+                                            args=([func, interaction_model, env])).start()
 
         channel = grpc.insecure_channel('localhost:%s' % env['GRPC_PORT'])
         testutils.wait_until_channel_ready(channel)
@@ -165,7 +165,7 @@ class FunctionInvokerTest(unittest.TestCase):
         func, interaction_model = invoker.function_invoker.install_function(env)
 
         threading.Thread(target=invoker.function_invoker.invoke_function,
-                                            args=([func, interaction_model, env])).start();
+                                            args=([func, interaction_model, env])).start()
 
         channel = grpc.insecure_channel('localhost:%s' % env['GRPC_PORT'])
         testutils.wait_until_channel_ready(channel)
@@ -191,7 +191,6 @@ class FunctionInvokerTest(unittest.TestCase):
     def test_discrete_window_text(self):
 
         from itertools import count
-        import struct
         import json
 
         env = function_env('windows.py','discrete_window_text')
@@ -199,7 +198,7 @@ class FunctionInvokerTest(unittest.TestCase):
         func, interaction_model = invoker.function_invoker.install_function(env)
 
         threading.Thread(target=invoker.function_invoker.invoke_function,
-                                            args=([func, interaction_model, env])).start();
+                                            args=([func, interaction_model, env])).start()
 
         channel = grpc.insecure_channel('localhost:%s' % env['GRPC_PORT'])
         testutils.wait_until_channel_ready(channel)
@@ -214,7 +213,7 @@ class FunctionInvokerTest(unittest.TestCase):
         '''
         Check the first 10 responses. Each message is a json serialized tuple of size 3 containing the next sequence of ints.
         '''
-        for i in range(10):
+        for _ in range(10):
             tpl = json.loads(next(responses).payload)
             print(tpl)
 
@@ -230,7 +229,7 @@ class FunctionInvokerTest(unittest.TestCase):
         func, interaction_model = invoker.function_invoker.install_function(env)
 
         threading.Thread(target=invoker.function_invoker.invoke_function,
-                                            args=([func, interaction_model, env])).start();
+                                            args=([func, interaction_model, env])).start()
 
         channel = grpc.insecure_channel('localhost:%s' % env['GRPC_PORT'])
         testutils.wait_until_channel_ready(channel)
@@ -253,6 +252,39 @@ class FunctionInvokerTest(unittest.TestCase):
                 self.assertEqual(i+j, tpl[j])
 
         invoker.function_invoker.stop()
+    
+
+    def test_source(self):
+        env = function_env('streamer.py','source')
+
+        func, interaction_model = invoker.function_invoker.install_function(env)
+
+        threading.Thread(target=invoker.function_invoker.invoke_function,
+                                            args=([func, interaction_model, env])).start()
+
+        channel = grpc.insecure_channel('localhost:%s' % env['GRPC_PORT'])
+        testutils.wait_until_channel_ready(channel)
+
+        def messages():
+            yield message.Message()
+
+        responses = function.MessageFunctionStub(channel).Call(messages())
+
+        for i in range(10):
+            self.assertEqual(bytes(str(i),'utf-8'),  next(responses).payload)
+        
+        invoker.function_invoker.stop()
+    
+    def test_zip(self):
+        env = {
+            'FUNCTION_URI' : 'file://%s/tests/zip/myfunc.zip?handler=func.handler' % os.getcwd(),
+            'GRPC_PORT': testutils.find_free_port()
+        }
+        func, interaction_model = invoker.function_invoker.install_function(env)
+        self.assertEqual('HELLO',func('hello'))
+        os.remove('func.py')
+        os.remove('helpers.py')
+        self.assertEqual('handler',func.__name__)
 
 
 def function_env(module,handler):

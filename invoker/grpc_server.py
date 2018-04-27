@@ -83,78 +83,89 @@ class MessageFunctionServicer(function.MessageFunctionServicer):
         :param context: the gRPC request context
         :return:
         """
-
         if self.interaction_model == 'stream':
-            for item in map(self.wrap_message, self.func(self.convert_request_payload(msg) for msg in request_iterator)):
-                yield item
+            if is_source(self.func):
+                for item in map(wrap_message, self.func()):
+                    yield item
+            else:
+                for item in map(wrap_message, self.func(convert_request_payload(msg) for msg in request_iterator)):
+                    yield item
         else:
-            for request in request_iterator:
-                result = self.func(self.convert_request_payload(request))
+            if is_source(self.func):
+                result = self.func()
+                yield wrap_message(result, request.headers)
+            else:
+                for request in request_iterator:
+                    result = self.func(convert_request_payload(request))
+                    yield wrap_message(result, request.headers)
+               
 
-                reply = self.build_reply_message(request.headers, result)
-                yield reply
+
+def wrap_message(payload, headers={}):
+    """
+    Wrap a payload in a Message
+    :param payload:
+    :param headers:
+    :return: the Message
+    """
+    return build_reply_message(payload, headers)
 
 
 
-    @classmethod
-    def wrap_message(cls, payload, headers={}):
-        """
-        Wrap a payload in a Message
-        :param payload:
-        :param headers:
-        :return: the Message
-        """
-        return cls.build_reply_message(headers, payload)
-
-    @classmethod
-    def convert_request_payload(cls, request):
-        """
-        Convert the request payload from bytes for a given request's Content Type header
-        :param request: the request Message
-        :return: varies by content type header, e.g., dict or str
-        """
-        if 'application/json' in request.headers['Content-Type'].values:
-            return json.loads(request.payload)
-        elif 'application/octet-stream' in request.headers['Content-Type'].values:
-            return request.payload
-        elif 'text/plain' in request.headers['Content-Type'].values:
-            return request.payload.decode('UTF-8')
-        
+def convert_request_payload(request):
+    """
+    Convert the request payload from bytes for a given request's Content Type header
+    :param request: the request Message
+    :return: varies by content type header, e.g., dict or str
+    """
+    if 'application/json' in request.headers['Content-Type'].values:
+        return json.loads(request.payload)
+    elif 'application/octet-stream' in request.headers['Content-Type'].values:
         return request.payload
+    elif 'text/plain' in request.headers['Content-Type'].values:
+        return request.payload.decode('UTF-8')
+    
+    return request.payload
 
-    @classmethod
-    def build_reply_message(cls, headers, val):
-        """
-        Convert the reply payload to bytes given the request's Accept header
-        :param headers: The request header values
-        :param val: the payload
-        :return: bytes
-        """
 
-        reply = message.Message()
-        if headers.get('correlationId', None):
-            reply.headers['correlationId'].values[:] = headers['correlationId'].values[:]
 
-        accepts = headers.get('Accepts',message.Message.HeaderValue()).values
+def build_reply_message(payload, headers):
+    """
+    Convert the reply payload to bytes given the request's Accept header
+    :param headers: The request header values
+    :param val: the payload
+    :return: bytes
+    """
 
-        if len(accepts) == 0 or 'text/plain' in accepts or "*/*" in accepts:
-            if type(val) is dict:
-                reply.payload = bytes(json.dumps(val), 'UTF-8')
-            else:
-                if type(val) is str:
-                    reply.payload = bytes(val, 'UTF-8')
-                    reply.headers['Content-type'].values[:] = ["text/plain"]
-                else:
-                    reply.payload = val
-                    reply.headers['Content-type'].values[:] = ["application/octet-stream"]
+    reply = message.Message()
+    if headers.get('correlationId', None):
+        reply.headers['correlationId'].values[:] = headers['correlationId'].values[:]
 
-        elif 'application/json' in accepts:
-            if type(val) is dict:
-                reply.payload = bytes(json.dumps(val), 'UTF-8')
-                reply.headers['Content-type'].values[:] = ["application/json"]
-            else:
-                raise RuntimeError('Cannot convert type %s to JSON' % type(val))
+    accepts = headers.get('Accepts',message.Message.HeaderValue()).values
+
+    if len(accepts) == 0 or 'text/plain' in accepts or "*/*" in accepts:
+        if type(payload) is dict:
+            reply.payload = bytes(json.dumps(payload), 'UTF-8')
         else:
-            raise RuntimeError('Unsupported Accept header %s' % accepts)
+            if type(payload) is str:
+                reply.payload = bytes(payload, 'UTF-8')
+                reply.headers['Content-type'].values[:] = ["text/plain"]
+            else:
+                reply.payload = payload
+                reply.headers['Content-type'].values[:] = ["application/octet-stream"]
 
-        return reply
+    elif 'application/json' in accepts:
+        if type(payload) is dict:
+            reply.payload = bytes(json.dumps(payload), 'UTF-8')
+            reply.headers['Content-type'].values[:] = ["application/json"]
+        else:
+            raise RuntimeError('Cannot convert type %s to JSON' % type(payload))
+    else:
+        raise RuntimeError('Unsupported Accept header %s' % accepts)
+
+    return reply
+
+
+
+def is_source(func):
+    return func.__code__.co_argcount == 0
