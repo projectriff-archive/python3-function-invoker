@@ -215,7 +215,6 @@ class FunctionInvokerTest(unittest.TestCase):
         '''
         for _ in range(10):
             tpl = json.loads(next(responses).payload)
-            print(tpl)
 
         invoker.function_invoker.stop()
 
