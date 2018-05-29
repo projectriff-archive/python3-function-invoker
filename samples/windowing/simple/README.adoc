@@ -1,0 +1,74 @@
+= simple
+
+[horizontal]
+*Invoker*:: python3
+*Function*:: link:simple.py[simple.py]
+*Input*:: simple
+*Output*:: simple-out
+
+This sample demonstrates riff's sidecar windowing feature.
+
+=== prerequisites
+
+1. riff is deployed
+2. the `riff` CLI is on your PATH
+3. the python3 invoker is installed
+
+    riff invokers apply -f https://github.com/projectriff/python3-function-invoker/raw/master/python3-invoker.yaml
+
+4. the working directory is `samples/windows/simple`
+
+=== create the function resources and Dockerfile 
+
+```
+riff init python3 --output simple-out
+```
+
+=== edit the link configuration 
+
+Edit `simple-link.yaml` and change the windowing `size` value to `3` (or whatever you want).
+
+```
+windowing:
+    size: 3
+``` 
+
+=== create the function
+
+```
+riff create python3
+```
+
+
+
+=== monitor the output topic
+
+```
+curl https://raw.githubusercontent.com/projectriff/riff/master/topics | bash -s tail -n simple-out
+```
+
+=== publish some messages
+
+```
+for i in `seq 1 100`; do riff publish -d $i --input simple; done;
+```
+
+You should see something like:
+
+```
+ Content-type["text/plain"]["1", "2", "3"]
+�
+ Content-type["text/plain"]["4", "5", "6"]
+�
+ Content-type["text/plain"]["7", "8", "9"]
+�
+ Content-type["text/plain"]["10", "11", "12"]
+ ...
+```
+
+=== delete the function and its topics
+
+```
+riff delete -n simple --all
+```
+
