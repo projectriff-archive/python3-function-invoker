@@ -1,3 +1,5 @@
+⚠️ **This invoker will work with the 0.0.7 release of riff, and will be upgraded to work on more recent releases soon.**
+
 # Python3 Function Invoker [![Build Status](https://travis-ci.org/projectriff/python3-function-invoker.svg?branch=master)](https://travis-ci.org/projectriff/python3-function-invoker)
 
 ## About
