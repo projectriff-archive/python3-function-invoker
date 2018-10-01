@@ -26,6 +26,7 @@ from urllib.parse import urlparse
 from shutil import copyfile
 
 import grpc_server
+import http_server
 
 
 def invoke_function(func,interaction_model, env):
@@ -36,7 +37,11 @@ def invoke_function(func,interaction_model, env):
     :param env: a dict containing the runtime environment, usually os.environ
     :return: None
     """
-    grpc_server.run(func, interaction_model, env.get("GRPC_PORT", 10382))
+
+    if env.get("GRPC_PORT") is not None:
+        grpc_server.run(func, interaction_model, env.get("GRPC_PORT", 10382))
+    else:
+        http_server.run(func=func, port=int(env.get("HTTP_PORT", 8080)))
 
 
 def install_function(env):
