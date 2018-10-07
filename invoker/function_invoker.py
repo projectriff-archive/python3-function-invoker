@@ -25,30 +25,53 @@ import os.path
 from urllib.parse import urlparse
 from shutil import copyfile
 
-import grpc_server
 import http_server
 
 
-def invoke_function(func,interaction_model, env):
+def run(function_invoker, env):
     """
-    Start a gRPC Server to invoke the function
-    :param func: the function
-    :param interaction_model: indicates interaction model: None is single value parameter and return type, 'stream' indicates input and output are generators
+    Start an http Server to serve the function
+    :param function_invoker: a function object that can be invoked with invoke()
     :param env: a dict containing the runtime environment, usually os.environ
     :return: None
     """
 
-    if env.get("GRPC_PORT") is not None:
-        grpc_server.run(func, interaction_model, env.get("GRPC_PORT", 10382))
-    else:
-        http_server.run(func=func, port=int(env.get("HTTP_PORT", 8080)))
+    port = int(env.get("PORT", 8080))
+    http_server.run(function_invoker=function_invoker, port=port)
+
+
+class FunctionInvoker(object):
+    """The Function Invoker provides an object for calling functions
+    """
+
+    def __init__(self, func, interaction_model):
+        """
+        :param: func callable function
+        :param interaction_model function's interaction model request_response or stream
+        """
+        self.interaction_model = interaction_model
+        self.func = func
+
+    @property
+    def name(self):
+        return self.func.__name__
+
+    def invoke(self, iterator):
+        """invoke the function"""
+
+        if is_source(self.func):
+            return self.func()
+        elif self.interaction_model == "stream":
+            return self.func(iterator)
+        else:
+            return (self.func(arg) for arg in iterator)
 
 
 def install_function(env):
     """
     Locate and install the function resources given by the FUNCTION_URI
     :param env:  a dict containing the runtime environment, usually os.environ
-    :return: function plus the given interaction_model (from a global variable in the handler module)
+    :return: a function invoker object that can invoke functions
     """
     try:
         function_uri = env['FUNCTION_URI']
@@ -86,22 +109,15 @@ def install_function(env):
             mod_name, func_name = handler.rsplit('.', 1)
 
         mod = importlib.import_module(mod_name)
-        return getattr(mod, func_name), getattr(mod, 'interaction_model',None)
+        return FunctionInvoker(getattr(mod, func_name), getattr(mod, 'interaction_model', None))
 
     except KeyError:
         sys.stderr.write("required environment variable FUNCTION_URI is missing\n")
         exit(1)
 
-
-def stop(grace=None):
-    """
-    Stop the server. Currently used for testing.
-    :param grace: A grace period in seconds to wait for termination
-    :return: None
-    """
-    grpc_server.stop(grace)
-
+def is_source(func):
+    return func.__code__.co_argcount == 0
 
 if __name__ == '__main__':
-    func, interaction_model = install_function(os.environ)
-    invoke_function(func,interaction_model,os.environ)
+    function_invoker = install_function(os.environ)
+    run(function_invoker, os.environ)

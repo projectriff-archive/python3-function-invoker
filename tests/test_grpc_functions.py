@@ -37,6 +37,7 @@ import invoker.function_pb2 as message
 PYTHON = sys.executable
 
 
+@unittest.skip
 class GrpcFunctionTest(unittest.TestCase):
     """
     Spawns function_invoker in a separate process.
