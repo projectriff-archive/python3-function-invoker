@@ -28,6 +28,7 @@ class HttpFunctionTest(unittest.TestCase):
 
     def tearDown(self):
         os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+        self.process.wait()
 
     def test_upper(self):
         port = testutils.find_free_port()
