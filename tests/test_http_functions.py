@@ -20,43 +20,25 @@ class HttpFunctionTest(unittest.TestCase):
     Assumes os.getcwd() is the project base directory
     """
 
-    @classmethod
-    def setUpClass(cls):
-        cls.workingdir = os.path.abspath("./invoker")
-        cls.command = "%s function_invoker.py" % PYTHON
-        cls.PYTHONPATH = '%s:%s' % ('%s/tests/functions:$PYTHONPATH' % os.getcwd(), '%s/invoker' % os.getcwd())
-
     def tearDown(self):
         os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
         self.process.wait()
 
     def test_upper(self):
         port = testutils.find_free_port()
-
-        env = {
-            'PYTHONPATH': self.PYTHONPATH,
-            'PORT': str(port),
-            'FUNCTION_URI': 'file://%s/tests/functions/upper.py?handler=handle' % os.getcwd()
-        }
-
-        self.process = subprocess.Popen(self.command,
-                                        cwd=self.workingdir,
-                                        shell=True,
-                                        env=env,
-                                        preexec_fn=os.setsid,
-                                        )
+        self.process = run_function(port=port, module="upper.py", handler="handle")
 
         def generate_messages():
             messages = [
-                ("hello", 'UTF-8'),
-                ("world", 'UTF-8'),
-                ("foo", 'UTF-8'),
-                ("bar", 'UTF-8'),
+                "hello",
+                "world",
+                "foo",
+                "bar",
             ]
             for msg in messages:
                 yield msg
 
-        responses = self.call_multiple_http_messages(port, generate_messages())
+        responses = call_multiple_http_messages(port, generate_messages())
         expected = [b'HELLO', b'WORLD', b'FOO', b'BAR']
 
         for response in responses:
@@ -64,13 +46,45 @@ class HttpFunctionTest(unittest.TestCase):
 
         self.assertEqual(len(responses), len(expected))
 
-    def call_http(self, port, message):
-        url = 'http://localhost:' + str(port)
+    def test_json_processing(self):
+        port = testutils.find_free_port()
+        self.process = run_function(port=port, module="concat.py", handler="concat")
 
-        req = urllib.request.Request(url, message.encode(), method="POST", headers={"content-type": "text/plain"})
-        response = urllib.request.urlopen(req)
-        return response.read()
+        response = call_http(port=port, message='{"foo":"bar","hello":"world"}', content_type="application/json")
 
-    def call_multiple_http_messages(self, port, messages):
-        time.sleep(1)
-        return [self.call_http(port, message[0]) for message in messages]
+        self.assertEqual(b'{"result": "foobarhelloworld"}', response)
+
+
+def call_http(port, message, content_type="text/plain"):
+    url = 'http://localhost:' + str(port)
+
+    req = urllib.request.Request(url, message.encode(), method="POST", headers={"content-type": content_type})
+    response = urllib.request.urlopen(req)
+    return response.read()
+
+
+def call_multiple_http_messages(port, messages):
+    return [call_http(port, message) for message in messages]
+
+
+def run_function(port, module, handler):
+    command = "%s function_invoker.py" % PYTHON
+    workingdir = os.path.abspath("./invoker")
+    env = function_env(port, module, handler)
+    process = subprocess.Popen(command,
+                               cwd=workingdir,
+                               shell=True,
+                               env=env,
+                               preexec_fn=os.setsid,
+                               )
+
+    time.sleep(1)
+    return process
+
+
+def function_env(port, module, handler):
+    return {
+        'PYTHONPATH': '%s:%s' % ('%s/tests/functions:$PYTHONPATH' % os.getcwd(), '%s/invoker' % os.getcwd()),
+        'PORT': str(port),
+        'FUNCTION_URI': 'file://%s/tests/functions/%s?handler=%s' % (os.getcwd(), module, handler),
+    }
