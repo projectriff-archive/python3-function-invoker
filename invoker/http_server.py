@@ -1,13 +1,15 @@
+from bottle import Bottle, request
+
+
 def run(function_invoker, port):
+    app = Bottle()
 
-    from flask import Flask, request
-
-    app = Flask("app")
-
-    @app.route("/", methods=['POST'])
+    @app.post('/')
     def invoke():
-        arg = request.data.decode("utf-8")
+        arg = request.body.read().decode()
 
-        return next(function_invoker.invoke([arg]))
+        result = function_invoker.invoke([arg])
 
-    app.run(port=port)
+        return next(result)
+
+    app.run(host="0.0.0.0", port=port)
