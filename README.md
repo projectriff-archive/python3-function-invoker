@@ -1,5 +1,3 @@
-⚠️ **This invoker will work with the 0.0.7 release of riff, and will be upgraded to work on more recent releases soon.**
-
 # Python3 Function Invoker [![Build Status](https://travis-ci.org/projectriff/python3-function-invoker.svg?branch=master)](https://travis-ci.org/projectriff/python3-function-invoker)
 
 ## About
@@ -22,12 +20,6 @@ def bidirectional(stream):
     return (item.upper() for item in stream)
 ```
 
-## Install as a riff invoker
-
-```bash
-riff invokers apply -f python3-invoker.yaml
-```
-
 ## Running Tests
 
 This script will install a virtual environment for python 3.6 and run the tests.
@@ -48,121 +40,33 @@ This script will install a virtual environment for python 3.6 and run the tests.
 ./build.sh
 ```
 
-## Running test functions in riff
+## Running functions on Riff
+
+1. Create a Dockerfile that loads your function and uses the function invoker as a base image.
+```Dockerfile
+FROM projectriff/python3-function-invoker:0.0.8-snapshot
+ARG FUNCTION_MODULE=<FUNCTION_MODULE>
+ARG FUNCTION_HANDLER=<FUNCTION_HANDLER>
+ADD ./${FUNCTION_MODULE} /
+ENV FUNCTION_URI file:///${FUNCTION_MODULE}?handler=${FUNCTION_HANDLER}
+```
+Where <FUNCTION_MODULE> is the python module and <FUNCTION_HANDLER> is the python handler function
+
+2. Build your docker image and push to your image repository
 
 ```bash
-./build.sh
-riff create python tests/functions -n upper --handler handle
-riff publish -i upper -r -d "hello, world"
+docker build . -t <DOCKER_ID>/<FUNCTION_NAME>
+docker push <DOCKER_ID>/<FUNCTION_NAME>
 ```
 
-## riff Commands
+3. Deploy your function
 
-- [riff init python3](#riff-init-python3)
-- [riff create python3](#riff-create-python3)
-
-<!-- riff-init -->
-
-### riff init python3
-
-Initialize a python3 function
-
-#### Synopsis
-
-Generate the function based on the function source code specified as the filename, handler,
-name, artifact and version specified for the function image repository and tag.
-
-For example, type:
-
-    riff init python3 -i words -n uppercase --handler=process
-
-to generate the resource definitions using sensible defaults.
-
-
-```
-riff init python3 [flags]
+```bash
+riff service create <FUNCTION_NAME> --image <DOCKER_ID>/<FUNCTION_NAME>
 ```
 
-#### Options
+4. Invoke your function
 
+```bash
+riff service invoke <FUNCTION_NAME> --json -- -d '{"hi": " python"}'
 ```
-      --handler string   the name of the function handler (default "{{ .FunctionName }}")
-  -h, --help             help for python3
-```
-
-#### Options inherited from parent commands
-
-```
-  -a, --artifact string          path to the function artifact, source code or jar file
-      --config string            config file (default is $HOME/.riff.yaml)
-      --dry-run                  print generated function artifacts content to stdout only
-  -f, --filepath string          path or directory used for the function resources (defaults to the current directory)
-      --force                    overwrite existing functions artifacts
-  -i, --input string             the name of the input topic (defaults to function name)
-      --invoker-version string   the version of the invoker to use when building containers
-  -n, --name string              the name of the function (defaults to the name of the current directory)
-  -o, --output string            the name of the output topic (optional)
-  -u, --useraccount string       the Docker user account to be used for the image repository (default "current OS user")
-  -v, --version string           the version of the function image (default "0.0.1")
-```
-
-#### SEE ALSO
-
-* [riff init](https://github.com/projectriff/riff/blob/master/riff-cli/docs/riff_init.md)	 - Initialize a function
-
-
-<!-- /riff-init -->
-
-<!-- riff-create -->
-
-### riff create python3
-
-Create a python3 function
-
-#### Synopsis
-
-Create the function based on the function source code specified as the filename, handler,
-name, artifact and version specified for the function image repository and tag.
-
-For example, type:
-
-    riff create python3 -i words -n uppercase --handler=process
-
-to create the resource definitions, and apply the resources, using sensible defaults.
-
-
-```
-riff create python3 [flags]
-```
-
-#### Options
-
-```
-      --handler string     the name of the function handler (default "{{ .FunctionName }}")
-  -h, --help               help for python3
-      --namespace string   the namespace used for the deployed resources (defaults to kubectl's default)
-      --push               push the image to Docker registry
-```
-
-#### Options inherited from parent commands
-
-```
-  -a, --artifact string          path to the function artifact, source code or jar file
-      --config string            config file (default is $HOME/.riff.yaml)
-      --dry-run                  print generated function artifacts content to stdout only
-  -f, --filepath string          path or directory used for the function resources (defaults to the current directory)
-      --force                    overwrite existing functions artifacts
-  -i, --input string             the name of the input topic (defaults to function name)
-      --invoker-version string   the version of the invoker to use when building containers
-  -n, --name string              the name of the function (defaults to the name of the current directory)
-  -o, --output string            the name of the output topic (optional)
-  -u, --useraccount string       the Docker user account to be used for the image repository (default "current OS user")
-  -v, --version string           the version of the function image (default "0.0.1")
-```
-
-#### SEE ALSO
-
-* [riff create](https://github.com/projectriff/riff/blob/master/riff-cli/docs/riff_create.md)	 - Create a function (equivalent to init, build, apply)
-
-
-<!-- /riff-create -->
