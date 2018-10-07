@@ -7,6 +7,7 @@ import subprocess
 import os
 import signal
 import urllib.request
+import time
 
 sys.path.append('invoker')
 
@@ -33,7 +34,7 @@ class HttpFunctionTest(unittest.TestCase):
 
         env = {
             'PYTHONPATH': self.PYTHONPATH,
-            'HTTP_PORT': str(port),
+            'PORT': str(port),
             'FUNCTION_URI': 'file://%s/tests/functions/upper.py?handler=handle' % os.getcwd()
         }
 
@@ -70,6 +71,5 @@ class HttpFunctionTest(unittest.TestCase):
         return response.read()
 
     def call_multiple_http_messages(self, port, messages):
-        import time
         time.sleep(1)
         return [self.call_http(port, message[0]) for message in messages]
