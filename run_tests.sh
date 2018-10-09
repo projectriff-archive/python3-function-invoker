@@ -14,7 +14,7 @@ if ! command -v pip &>/dev/null; then
    rm get-pip.py
 fi
 
-REQUIRED_PYTHON_VERSION=3.6
+REQUIRED_PYTHON_VERSION=3.7
 VENV_DIR=test_pyenv
 
 virtualenv -q -p "python$REQUIRED_PYTHON_VERSION" $VENV_DIR
