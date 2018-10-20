@@ -12,6 +12,10 @@ def run(function_invoker, port):
 
         return next(result)
 
+    @app.error(500)
+    def error500(error):
+        return "Error Invoking Function: " + repr(error.exception)
+
     app.run(host="0.0.0.0", port=port)
 
 

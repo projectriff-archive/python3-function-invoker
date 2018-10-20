@@ -1,4 +1,5 @@
 import sys
+from urllib.error import HTTPError
 
 from tests.utils import testutils
 
@@ -53,6 +54,19 @@ class HttpFunctionTest(unittest.TestCase):
         response = call_http(port=port, message='{"foo":"bar","hello":"world"}', content_type="application/json")
 
         self.assertEqual(b'{"result": "foobarhelloworld"}', response)
+
+    def test_error_handling(self):
+        port = testutils.find_free_port()
+        self.process = run_function(port=port, module="error.py", handler="nogood")
+
+        try:
+            call_http(port=port, message='{"foo":"bar"}', content_type="application/json")
+            raise AssertionError("Error expected for HTTP call")
+        except HTTPError as e:
+            response = e.read().decode("utf-8")
+
+        self.assertRegex(response, "Error Invoking Function:")
+        self.assertRegex(response, "Error thrown by Function")
 
 
 def call_http(port, message, content_type="text/plain"):
