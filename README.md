@@ -7,31 +7,12 @@ For messages containing `Content-Type:application/json`, the bytes payload is co
 
 Supported Python Version: 3.7.x
 
-## Streams (experimental)
-If the function module contains a global variable `interaction_model='stream'`, the invoker will pass a generator yielding each message payload. The response should be a generator yielding the response payload.
-
-For example:
-
-```
-interaction_model = "stream"
-
-
-def bidirectional(stream):
-    return (item.upper() for item in stream)
-```
-
 ## Running Tests
 
 This script will install a virtual environment for python 3.6 and run the tests.
 
 ```bash
 ./run_tests.sh
-```
-
-## Update grpc modules
-
-```bash
-./setup.py grpc
 ```
 
 ## Build the docker image
