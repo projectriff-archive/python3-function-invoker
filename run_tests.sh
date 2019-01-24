@@ -6,7 +6,7 @@ if !command -v $PYTHON &>/dev/null; then
     echo Python is not installed
 fi
 
-if ! command -v pip &>/dev/null; then
+if !command -v pip &>/dev/null; then
    echo "Installing pip"
    wget https://bootstrap.pypa.io/get-pip.py
    sudo $PYTHON get-pip.py
@@ -14,7 +14,7 @@ if ! command -v pip &>/dev/null; then
    rm get-pip.py
 fi
 
-REQUIRED_PYTHON_VERSION=3.7
+REQUIRED_PYTHON_VERSION=3.6
 VENV_DIR=test_pyenv
 
 virtualenv -q -p "python$REQUIRED_PYTHON_VERSION" $VENV_DIR

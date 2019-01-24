@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 __copyright__ = '''
-Copyright 2017 the original author or authors.
+Copyright 2019 the original author or authors.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,8 +24,9 @@ import ntpath
 import os.path
 from urllib.parse import urlparse
 from shutil import copyfile
+from queue import Queue
 
-import http_server
+from invoker import http_server
 
 
 def run(function_invoker, env):
@@ -39,6 +40,9 @@ def run(function_invoker, env):
     port = int(env.get("PORT", 8080))
     http_server.run(function_invoker=function_invoker, port=port)
 
+
+def stop():
+    http_server.stop()
 
 class FunctionInvoker(object):
     """The Function Invoker provides an object for calling functions
@@ -56,6 +60,13 @@ class FunctionInvoker(object):
     def name(self):
         return self.func.__name__
 
+    def invoke_async(self, iterator, output):
+        try:
+            for result in self.invoke(iterator):
+                output.put(result)
+        except Exception as err:
+            output.put(err)
+
     def invoke(self, iterator):
         """invoke the function"""
 
@@ -65,6 +76,23 @@ class FunctionInvoker(object):
             return self.func(iterator)
         else:
             return (self.func(arg) for arg in iterator)
+
+    # def invoke(self, iterator):
+    #     """invoke the function"""
+    #     try:
+    #         if is_source(self.func):
+    #             for result in (self.func()):
+    #                 output.put(result)
+    #         elif self.interaction_model == "stream":
+    #             for result in (self.func(iterator)):
+    #                 output.put(result)
+    #         else:
+    #             for result in (self.func(arg) for arg in iterator):
+    #                 output.put(result)
+    #     except Exception as err:
+    #         output.put(err)
+    #
+    #     return output
 
 
 def install_function(env):
