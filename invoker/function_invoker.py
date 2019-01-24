@@ -24,8 +24,9 @@ import ntpath
 import os.path
 from urllib.parse import urlparse
 from shutil import copyfile
+from queue import Queue
 
-import http_server
+from invoker import http_server
 
 
 def run(function_invoker, env):
@@ -39,6 +40,9 @@ def run(function_invoker, env):
     port = int(env.get("PORT", 8080))
     http_server.run(function_invoker=function_invoker, port=port)
 
+
+def stop():
+    http_server.stop()
 
 class FunctionInvoker(object):
     """The Function Invoker provides an object for calling functions
@@ -56,15 +60,22 @@ class FunctionInvoker(object):
     def name(self):
         return self.func.__name__
 
-    def invoke(self, iterator):
+    def invoke(self, iterator, output=Queue()):
         """invoke the function"""
+        try:
+            if is_source(self.func):
+                for result in (self.func()):
+                    output.put(result)
+            elif self.interaction_model == "stream":
+                for result in (self.func(iterator)):
+                    output.put(result)
+            else:
+                for result in (self.func(arg) for arg in iterator):
+                    output.put(result)
+        except Exception as err:
+            output.put(err)
 
-        if is_source(self.func):
-            return self.func()
-        elif self.interaction_model == "stream":
-            return self.func(iterator)
-        else:
-            return (self.func(arg) for arg in iterator)
+        return output
 
 
 def install_function(env):
