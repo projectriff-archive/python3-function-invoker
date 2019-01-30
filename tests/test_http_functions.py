@@ -47,7 +47,8 @@ class HttpFunctionTest(unittest.TestCase):
         expected = [b'HELLO', b'WORLD', b'FOO', b'BAR']
 
         for response in responses:
-            self.assertTrue(response in expected)
+            r = response.read()
+            self.assertTrue(r in expected)
 
         self.assertEqual(len(responses), len(expected))
 
@@ -66,11 +67,13 @@ class HttpFunctionTest(unittest.TestCase):
             for msg in messages:
                 yield msg
 
-        responses = call_multiple_http_messages(self.port, generate_messages())
+        responses = call_multiple_http_messages(self.port, generate_messages(),{'correlationId':'1234'})
         expected = [b'HELLO', b'WORLD', b'FOO', b'BAR']
 
         for response in responses:
-            self.assertTrue(response in expected)
+            r = response.read()
+            self.assertTrue(r in expected)
+            self.assertEqual(response.getheader('correlationId'),'1234')
 
         self.assertEqual(len(responses), len(expected))
 
@@ -81,21 +84,22 @@ class HttpFunctionTest(unittest.TestCase):
         expected = [b'["0", "1", "2"]', b'["3", "4", "5"]', b'["6", "7", "8"]', b'["9", "10", "11"]']
 
         for response in responses:
-            if len(response):
-                self.assertTrue(response in expected)
+            r = response.read()
+            if len(r):
+                self.assertTrue(r in expected)
 
     def test_json_processing(self):
         run_function(port=self.port, module="concat.py", handler="concat")
 
-        response = call_http(port=self.port, message='{"foo":"bar","hello":"world"}', content_type="application/json")
+        response = call_http(port=self.port, message='{"foo":"bar","hello":"world"}', headers={'Content-Type':'application/json'})
 
-        self.assertEqual(b'{"result": "foobarhelloworld"}', response)
+        self.assertEqual(b'{"result": "foobarhelloworld"}', response.read())
 
     def test_error_handling(self):
         run_function(port=self.port, module="error.py", handler="nogood")
 
         try:
-            response = call_http(port=self.port, message='{"foo":"bar"}', content_type="application/json")
+            call_http(port=self.port, message='{"foo":"bar"}', headers={'Content_Type':"application/json"})
             raise AssertionError("Error expected for HTTP call")
         except HTTPError as e:
             response = e.read().decode("utf-8")
@@ -104,18 +108,15 @@ class HttpFunctionTest(unittest.TestCase):
         self.assertRegex(response, "Error thrown by Function")
 
 
-def call_http(port, message, content_type="text/plain"):
+def call_http(port, message, headers):
     url = 'http://localhost:' + str(port)
 
-    req = urllib.request.Request(url, message.encode(), method="POST", headers={"content-type": content_type})
-
-    response = urllib.request.urlopen(req)
-    print("! %s" % response)
-    return response.read()
+    req = urllib.request.Request(url, message.encode(), method="POST", headers=headers)
+    return urllib.request.urlopen(req)
 
 
-def call_multiple_http_messages(port, messages):
-    return [call_http(port, message) for message in messages]
+def call_multiple_http_messages(port, messages, headers={}):
+    return [call_http(port, message,headers) for message in messages]
 
 
 def run_function(port, module, handler):

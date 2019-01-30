@@ -1,5 +1,5 @@
 __copyright__ = '''
-Copyright 2017 the original author or authors.
+Copyright 2019 the original author or authors.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ from gevent.queue import Channel, Empty
 from gevent.pywsgi import WSGIServer
 
 SERVER = None
+CORRELATION_ID_HEADER = 'correlationId'
 
 
 def run(function_invoker, port):
@@ -29,8 +30,6 @@ def run(function_invoker, port):
     invocation = gevent.spawn(function_invoker.invoke, input_channel, output_channel)
 
     def invoke(environ, start_response):
-
-        print(environ)
 
         body = parse_function_arguments(environ)
         input_channel.put(body)
@@ -42,6 +41,10 @@ def run(function_invoker, port):
             ('Content-Type', contenttype)
         ]
 
+        correlationid = http_header(CORRELATION_ID_HEADER, environ)
+        if correlationid is not None:
+            headers.append((CORRELATION_ID_HEADER, correlationid))
+
         start_response(status, headers)
 
         try:
@@ -51,17 +54,21 @@ def run(function_invoker, port):
                 return
             elif isinstance(val, Exception):
                 start_response('500 INTERNAL SERVER ERROR', [('Content-Type', 'text/plain')])
-                yield response("Error Invoking Function: " + repr(val), 'text/plain', environ)
+                yield response("Error Invoking Function: " + repr(val), 'text/plain')
             else:
-                yield response(val, contenttype, environ)
+                yield response(val, contenttype)
         except Empty:
             return
-            # except Exception as err:
 
     global SERVER
     options = None
     SERVER = WSGIServer(('', port), application=invoke)  # , log=None)
     SERVER.serve_forever()
+
+
+def http_header(name, env):
+    key = "HTTP_%s" % name.upper()
+    return env.get(key, None)
 
 
 def stop():
@@ -83,13 +90,9 @@ def parse_function_arguments(env):
     return body
 
 
-def response(val, contenttype, environ):
+def response(val, contenttype):
     if type(val) == dict and contenttype.startswith('application/json'):
         resp = json.dumps(val)
-    elif isinstance(val, Exception):
-
-        raise Exception
-
     else:
         resp = val
     return bytearray(resp, 'UTF-8')
