@@ -16,7 +16,7 @@ Copyright 2019 the original author or authors.
 
 import gevent
 import json
-from gevent.queue import Channel, Empty
+from gevent.queue import Queue, Empty
 from gevent.pywsgi import WSGIServer
 
 SERVER = None
@@ -24,10 +24,10 @@ CORRELATION_ID_HEADER = 'correlationId'
 
 
 def run(function_invoker, port):
-    output_channel = Channel()
-    input_channel = Channel()
+    output_channel = Queue(maxsize=50)
+    input_channel = Queue(maxsize=50)
 
-    invocation = gevent.spawn(function_invoker.invoke, input_channel, output_channel)
+    invocation = gevent.spawn(function_invoker.invoke_async, input_channel, output_channel)
 
     def invoke(environ, start_response):
 

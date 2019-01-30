@@ -60,22 +60,39 @@ class FunctionInvoker(object):
     def name(self):
         return self.func.__name__
 
-    def invoke(self, iterator, output=Queue()):
-        """invoke the function"""
+    def invoke_async(self, iterator, output):
         try:
-            if is_source(self.func):
-                for result in (self.func()):
-                    output.put(result)
-            elif self.interaction_model == "stream":
-                for result in (self.func(iterator)):
-                    output.put(result)
-            else:
-                for result in (self.func(arg) for arg in iterator):
-                    output.put(result)
+            for result in self.invoke(iterator):
+                output.put(result)
         except Exception as err:
             output.put(err)
 
-        return output
+    def invoke(self, iterator):
+        """invoke the function"""
+
+        if is_source(self.func):
+            return self.func()
+        elif self.interaction_model == "stream":
+            return self.func(iterator)
+        else:
+            return (self.func(arg) for arg in iterator)
+
+    # def invoke(self, iterator):
+    #     """invoke the function"""
+    #     try:
+    #         if is_source(self.func):
+    #             for result in (self.func()):
+    #                 output.put(result)
+    #         elif self.interaction_model == "stream":
+    #             for result in (self.func(iterator)):
+    #                 output.put(result)
+    #         else:
+    #             for result in (self.func(arg) for arg in iterator):
+    #                 output.put(result)
+    #     except Exception as err:
+    #         output.put(err)
+    #
+    #     return output
 
 
 def install_function(env):

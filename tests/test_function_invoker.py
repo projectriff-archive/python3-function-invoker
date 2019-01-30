@@ -55,8 +55,7 @@ class FunctionInvokerTest(unittest.TestCase):
         responses = function_invoker.invoke(generate_messages())
         expected = ["HELLO", "WORLD", "FOO", "BAR"]
 
-        while not responses.empty():
-            response = responses.get(timeout=1)
+        for response in responses:
             self.assertTrue(response in expected)
             expected.remove(response)
 
@@ -80,8 +79,7 @@ class FunctionInvokerTest(unittest.TestCase):
         responses = function_invoker.invoke(generate_messages())
         expected = ["FOO", "BAR", "BAZ", "FAZ"]
 
-        while not responses.empty():
-            response = responses.get(timeout=1)
+        for response in responses:
             self.assertTrue(response in expected)
             expected.remove(response)
 
@@ -105,8 +103,7 @@ class FunctionInvokerTest(unittest.TestCase):
         responses = function_invoker.invoke(generate_messages())
         expected = ["foo", "foobar"]
 
-        while not responses.empty():
-            response = responses.get(timeout=1)
+        for response in responses:
             self.assertTrue(response in expected)
             expected.remove(response)
 
@@ -125,21 +122,18 @@ class FunctionInvokerTest(unittest.TestCase):
         '''
         unbounded generator of int
         '''
-        messages = (struct.pack(">I", i) for i in range(12))
+        messages = (struct.pack(">I", i) for i in count())
 
         responses = function_invoker.invoke(messages)
 
         '''
-        Check responses. Each message is a json serialized tuple of size 3 containing the next sequence of ints.
+        Check the first 10 responses. Each message is a json serialized tuple of size 3 containing the next sequence of ints.
         '''
-        i = 0
-        while not responses.empty():
-            tpl = json.loads(responses.get(timeout=1))
+        for i in range(10):
+            tpl = json.loads(next(responses))
             self.assertEqual(3, len(tpl))
             for j in range(len(tpl)):
                 self.assertEqual(i * 3 + j, tpl[j])
-
-            i = i + 1
 
     def test_sliding_window(self):
 
@@ -154,22 +148,32 @@ class FunctionInvokerTest(unittest.TestCase):
         '''
         unbounded generator of int
         '''
-        messages = (struct.pack(">I", i) for i in range(5))
+        messages = (struct.pack(">I", i) for i in count())
 
         responses = function_invoker.invoke(messages)
 
         '''
-        Check the responses. Each message is a json serialized tuple of size 3 containing the next sequence 
+        Check the first 10 responses. Each message is a json serialized tuple of size 3 containing the next sequence 
         of ints: ((0,1,2),(1,2,3),(2,3,4))
         '''
-        i = 0
-        while not responses.empty():
-            tpl = json.loads(responses.get(timeout=1))
+        for i in range(10):
+            tpl = json.loads(next(responses))
             self.assertEqual(3, len(tpl))
             for j in range(len(tpl)):
                 self.assertEqual(i + j, tpl[j])
 
-            i = i + 1
+    def test_source(self):
+        env = function_env('streamer.py', 'source')
+
+        function_invoker = invoker.function_invoker.install_function(env)
+
+        def messages():
+            yield
+
+        responses = function_invoker.invoke(messages())
+
+        for i in range(10):
+            self.assertEqual(str(i), next(responses))
 
     def test_zip(self):
         env = {
@@ -179,7 +183,7 @@ class FunctionInvokerTest(unittest.TestCase):
 
         generator = (message for message in ["hello"])
 
-        self.assertEqual('HELLO', function_invoker.invoke(generator).get())
+        self.assertEqual('HELLO', next(function_invoker.invoke(generator)))
         os.remove('func.py')
         os.remove('helpers.py')
         self.assertEqual('handler', function_invoker.name)
