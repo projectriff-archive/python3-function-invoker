@@ -27,12 +27,12 @@ def run(function_invoker, port):
     output_channel = Queue(maxsize=50)
     input_channel = Queue(maxsize=50)
 
-    invocation = gevent.spawn(function_invoker.invoke_async, input_channel, output_channel)
+    gevent.spawn(function_invoker.invoke_async, input_channel, output_channel)
 
     def invoke(environ, start_response):
 
         body = parse_function_arguments(environ)
-        input_channel.put(body)
+        input_channel.put(body, timeout=30)
 
         status = '200 OK'
 
@@ -48,7 +48,8 @@ def run(function_invoker, port):
         start_response(status, headers)
 
         try:
-            gevent.sleep(0)
+            # yield to spawned greenlet
+            gevent.sleep()
             val = output_channel.get_nowait()
             if val == StopIteration:
                 return

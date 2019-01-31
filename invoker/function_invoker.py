@@ -24,7 +24,6 @@ import ntpath
 import os.path
 from urllib.parse import urlparse
 from shutil import copyfile
-from queue import Queue
 
 from invoker import http_server
 
@@ -43,6 +42,7 @@ def run(function_invoker, env):
 
 def stop():
     http_server.stop()
+
 
 class FunctionInvoker(object):
     """The Function Invoker provides an object for calling functions
@@ -63,9 +63,9 @@ class FunctionInvoker(object):
     def invoke_async(self, iterator, output):
         try:
             for result in self.invoke(iterator):
-                output.put(result)
+                output.put(result, timeout=30)
         except Exception as err:
-            output.put(err)
+            output.put(err, timeout=30)
 
     def invoke(self, iterator):
         """invoke the function"""
@@ -76,24 +76,6 @@ class FunctionInvoker(object):
             return self.func(iterator)
         else:
             return (self.func(arg) for arg in iterator)
-
-    # def invoke(self, iterator):
-    #     """invoke the function"""
-    #     try:
-    #         if is_source(self.func):
-    #             for result in (self.func()):
-    #                 output.put(result)
-    #         elif self.interaction_model == "stream":
-    #             for result in (self.func(iterator)):
-    #                 output.put(result)
-    #         else:
-    #             for result in (self.func(arg) for arg in iterator):
-    #                 output.put(result)
-    #     except Exception as err:
-    #         output.put(err)
-    #
-    #     return output
-
 
 def install_function(env):
     """
@@ -143,8 +125,10 @@ def install_function(env):
         sys.stderr.write("required environment variable FUNCTION_URI is missing\n")
         exit(1)
 
+
 def is_source(func):
     return func.__code__.co_argcount == 0
+
 
 if __name__ == '__main__':
     function_invoker = install_function(os.environ)
